@@ -3,46 +3,37 @@ import sys
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from functions.get_files_info import schema_get_files_info
-from functions.get_file_content import schema_get_file_content
-from functions.run_python_file import schema_run_python_file
-from functions.write_file import schema_write_file
 
-load_dotenv()
-api_key = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
+from call_function import available_functions
+from prompts import system_prompt
 
-verbose = "--verbose" in sys.argv
-args = [a for a in sys.argv[1:] if not a.startswith("--")]
 
-if not args:
-    print("Error: No prompt/arguments given.")
-    sys.exit(1)
+def main():
+    load_dotenv()
 
-user_prompt = " ".join(args)
-messages = [types.Content(role="user", parts=[types.Part(text=user_prompt)])]
+    verbose = "--verbose" in sys.argv
+    args = []
+    for arg in sys.argv[1:]:
+        if not arg.startswith("--"):
+            args.append(arg)
 
-available_functions = types.Tool(
-    function_declarations=[
-        schema_get_files_info,
-        schema_get_file_content,
-        schema_run_python_file,
-        schema_write_file,
-    ]
-)
+    if not args:
+        print("Geoffrey AI Coding Assistant")
+        print('\nUsage: python main.py "your prompt here" [--verbose]')
+        print('Example: python main.py "How do I fix the calculator?"')
+        sys.exit(1)
 
-system_prompt = """
-You are a helpful AI coding agent.
+    api_key = os.environ.get("GEMINI_API_KEY")
+    client = genai.Client(api_key=api_key)
 
-When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
+    user_prompt = " ".join(args)
 
-- List files and directories
-- Read file contents
-- Execute python files with optional arguments
-- Write or overwrite files
+    if verbose:
+        print(f"User prompt: {user_prompt}\n")
 
-All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
-"""
+    messages = [types.Content(role="user", parts=[types.Part(text=user_prompt)])]
+
+    generate_content(client, messages, verbose)
 
 
 def generate_content(client, messages, verbose):
@@ -55,17 +46,16 @@ def generate_content(client, messages, verbose):
         ),
     )
 
-    if not response.function_calls:
-        print(f"Response: {response.text}")
-    else:
-        for function_call_part in response.function_calls:
-            print(
-                f"Calling function: {function_call_part.name}({function_call_part.args})"
-            )
-
     if verbose:
         print("Prompt tokens:", response.usage_metadata.prompt_token_count)
         print("Response tokens:", response.usage_metadata.candidates_token_count)
 
+    if not response.function_calls:
+        return response.text
 
-generate_content(client, messages, verbose)
+    for function_call_part in response.function_calls:
+        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+
+
+if __name__ == "__main__":
+    main()

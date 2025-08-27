@@ -3,25 +3,6 @@ import subprocess
 from google.genai import types
 
 
-schema_run_python_file = types.FunctionDeclaration(
-    name="run_python_file",
-    description="Runs python scripts, constrained to the working directory.",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "file_path": types.Schema(
-                type=types.Type.STRING,
-                description="The name of a python file in the working directory.",
-            ),
-            "args": types.Schema(
-                type=types.Type.STRING,
-                description="The optional arguments passed to the specified python file. If no arguments are provided, then just execute the python file.",
-            ),
-        },
-    ),
-)
-
-
 def run_python_file(working_directory, file_path, args=[]):
     target_path = os.path.join(working_directory, file_path)
     abs_target = os.path.abspath(target_path)
@@ -53,3 +34,27 @@ def run_python_file(working_directory, file_path, args=[]):
         return f'STDOUT: "{run.stdout}", STDERR: "{run.stderr}"'
     except Exception as e:
         return f"Error: executing pythong file: {str(e)}"
+
+
+schema_run_python_file = types.FunctionDeclaration(
+    name="run_python_file",
+    description="Executes a Python file within the working directory and returns the output from the interpreter.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="Path to the Python file to execute, relative to the working directory.",
+            ),
+            "args": types.Schema(
+                type=types.Type.ARRAY,
+                items=types.Schema(
+                    type=types.Type.STRING,
+                    description="Optional arguments to pass to the Python file.",
+                ),
+                description="Optional arguments to pass to the Python file.",
+            ),
+        },
+        required=["file_path"],
+    ),
+)

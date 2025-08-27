@@ -2,20 +2,6 @@ import os
 from config import MAX_CHARS
 from google.genai import types
 
-schema_get_file_content = types.FunctionDeclaration(
-    name="get_file_content",
-    description="Lists the contents of the specified file, constrained to the working directory.",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "file_path": types.Schema(
-                type=types.Type.STRING,
-                description="The name of a file in the working directory. The contents of this file are to be printed.",
-            ),
-        },
-    ),
-)
-
 
 def get_file_content(working_directory, file_path):
     target_path = os.path.join(working_directory, file_path)
@@ -41,3 +27,19 @@ def get_file_content(working_directory, file_path):
                 )
     except Exception as e:
         return f"Error: {str(e)}"
+
+
+schema_get_file_content = types.FunctionDeclaration(
+    name="get_file_content",
+    description=f"Reads and returns the first {MAX_CHARS} characters of the content from a specified file within the working directory.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The path to the file whose content should be read, relative to the working directory.",
+            ),
+        },
+        required=["file_path"],
+    ),
+)
