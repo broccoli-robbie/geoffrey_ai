@@ -7,6 +7,7 @@ from google.genai import types
 from call_function import available_functions
 from prompts import system_prompt
 from call_function import call_function
+from config import MAX_ITERS
 
 
 def main():
@@ -38,29 +39,40 @@ def main():
 
 
 def generate_content(client, messages, verbose):
-    response = client.models.generate_content(
-        model="gemini-2.0-flash-001",
-        contents=messages,
-        config=types.GenerateContentConfig(
-            tools=[available_functions],
-            system_instruction=system_prompt,
-        ),
-    )
+    for i in range(0, MAX_ITERS):
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=messages,
+            config=types.GenerateContentConfig(
+                tools=[available_functions],
+                system_instruction=system_prompt,
+            ),
+        )
 
-    if verbose:
-        print("Prompt tokens:", response.usage_metadata.prompt_token_count)
-        print("Response tokens:", response.usage_metadata.candidates_token_count)
+        if verbose:
+            print("Prompt tokens:", response.usage_metadata.prompt_token_count)
+            print("Response tokens:", response.usage_metadata.candidates_token_count)
 
-    if not response.function_calls:
-        return response.text
+        if not response.function_calls:
+            return response.text
 
-    for function_call_part in response.function_calls:
-        function_result = call_function(function_call_part, verbose)
-        if function_result.parts[0].function_response.response:
-            if verbose:
-                print(f"-> {function_result.parts[0].function_response.response}")
-        else:
-            raise Exception("no response")
+        if response.candidates:
+            for candidate in response.candidates:
+                if candidate is None or candidate.content is None:
+                    continue
+                messages.append(candidate.content)
+
+        if response.function_calls:
+            for function_call_part in response.function_calls:
+                function_result = call_function(function_call_part, verbose)
+                messages.append(function_result)
+                if function_result.parts[0].function_response.response:
+                    if verbose:
+                        print(
+                            f"-> {function_result.parts[0].function_response.response}"
+                        )
+                else:
+                    raise Exception("no response")
 
 
 if __name__ == "__main__":

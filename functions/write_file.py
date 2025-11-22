@@ -16,7 +16,7 @@ def write_file(working_directory, file_path, content):
             os.makedirs(target_dir)
         with open(abs_target, "w") as f:
             f.write(content)
-            return f'Successfully wrote to "{file_path}" ({len(content)} characters written)'
+            return f'Successfully wrote to "{abs_target}" ({len(content)} characters written)'
     except Exception as e:
         return f"Error: {str(e)}"
 
