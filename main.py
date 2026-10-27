@@ -41,13 +41,15 @@ def main():
 def generate_content(client, messages, verbose):
     for i in range(0, MAX_ITERS):
         response = client.models.generate_content(
-            model="gemini-2.0-flash-001",
+            model="gemini-2.5-flash",
             contents=messages,
             config=types.GenerateContentConfig(
                 tools=[available_functions],
                 system_instruction=system_prompt,
             ),
         )
+
+        print("Response:", response.text)
 
         if verbose:
             print("Prompt tokens:", response.usage_metadata.prompt_token_count)

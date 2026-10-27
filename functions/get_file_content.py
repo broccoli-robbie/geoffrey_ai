@@ -3,30 +3,26 @@ from config import MAX_CHARS
 from google.genai import types
 
 
-def get_file_content(working_directory, file_path):
-    target_path = os.path.join(working_directory, file_path)
-    abs_target = os.path.abspath(target_path)
-    abs_working_directory = os.path.abspath(working_directory)
-
-    if not abs_target.startswith(abs_working_directory):
-        return (
-            f'Error: Cannot read "{file_path}" as it is outside the permitted directory'
+def get_file_content(working_directory: str, file_path: str) -> str:
+    try:
+        abs_working_directory: str = os.path.abspath(working_directory)
+        abs_target: str = os.path.abspath(
+            os.path.join(abs_working_directory, file_path)
         )
 
-    if not os.path.isfile(abs_target):
-        return f'Error: File not found or is not a regular file: "{file_path}"'
+        if not abs_target.startswith(abs_working_directory):
+            return f'Error: Cannot read "{file_path}" as it is outside the permitted working directory'
 
-    try:
+        if not os.path.isfile(abs_target):
+            return f'Error: File not found or is not a regular file: "{file_path}"'
+
         with open(abs_target, "r") as f:
-            file_content_string = f.read(MAX_CHARS)
-            if len(file_content_string) < MAX_CHARS:
-                return file_content_string
-            if len(file_content_string) == MAX_CHARS:
-                return file_content_string + (
-                    f'...File "{file_path}" truncated at 10000 characters'
-                )
+            content: str = f.read(MAX_CHARS)
+            if f.read(1):
+                content += f'...File "{file_path}" truncated at {MAX_CHARS} characters'
+        return content
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f'Error: reading file "{file_path}": {e}'
 
 
 schema_get_file_content = types.FunctionDeclaration(
